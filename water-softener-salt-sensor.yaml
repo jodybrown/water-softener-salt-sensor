@@ -1,0 +1,85 @@
+esphome:
+  name: water-softener-salt-sensor
+  friendly_name: "Water Softener Salt Sensor"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "wsss-fallback"
+    password: !secret fallback_password
+
+captive_portal:
+
+# ── JSN-SR04T Ultrasonic Sensor ─────────────────────────────
+# Wiring:
+#   Sensor VCC  → 5V (from USB or external supply)
+#   Sensor GND  → GND (common with ESP32)
+#   Sensor Trig → GPIO 5 (direct — 3.3V is enough to trigger)
+#   Sensor Echo → Voltage divider (1kΩ + 2kΩ) → GPIO 18
+#
+# Voltage divider: Echo ──[1kΩ]──┬── GPIO 18
+#                                │
+#                               [2kΩ]
+#                                │
+#                               GND
+#
+# This steps the 5V echo signal down to ~3.3V for the ESP32.
+
+sensor:
+  - platform: ultrasonic
+    id: softener_salt_distance
+    trigger_pin: GPIO5
+    echo_pin: GPIO18
+    name: "Softener Salt Distance"
+    unit_of_measurement: "m"
+    accuracy_decimals: 2
+    filters:
+      - median:
+          window_size: 5
+          send_every: 1
+    update_interval: 30s
+
+  # ── Optional: Template sensor for salt level percentage ─────
+  # Adjust min_distance and max_distance based on your tank dimensions
+  # min_distance = distance when tank is full of salt
+  # max_distance = distance when tank is empty
+
+  - platform: template
+    name: "Softener Salt Level"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    lambda: |-
+      float min_dist = 0.1;  // m — adjust to your tank (full)
+      float max_dist = 0.8;  // m — adjust to your tank (empty)
+      float dist = id(softener_salt_distance).state;
+      if (dist <= min_dist) return 100.0;
+      if (dist >= max_dist) return 0.0;
+      return (max_dist - dist) / (max_dist - min_dist) * 100.0;
+    update_interval: 30s
+
+  # ── Optional: Binary sensor for low salt alert ──────────────
+
+  - platform: template
+    name: "Softener Salt Low"
+    lambda: |-
+      return id(softener_salt_distance).state > 0.6;  // adjust threshold
+    update_interval: 30s
