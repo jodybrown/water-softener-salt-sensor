@@ -2,6 +2,8 @@
 
 ESPHome-based salt level monitor for a water softener using a JSN-SR04T ultrasonic sensor and an ESP32. It reports the distance to the salt surface, estimates remaining salt percentage, and provides a low-salt alert in Home Assistant. Includes OpenSCAD/STL files for a 3D-printed, angled housing designed to mount to a sloped tank lid.
 
+Posted on Maker World at https://makerworld.com/en/models/3520243-water-softener-salt-sensor
+
 ## Features
 
 - **Non-contact sensing** - Uses a waterproof JSN-SR04T ultrasonic sensor
